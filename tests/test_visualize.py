@@ -1,8 +1,10 @@
 import pytest
 
+from fslib.fsm import FSM
+from fslib.passes.construct import thompson
 from fslib.regex.ast import Concat, Literal, Star, Union
 from fslib.regex.parser import parse
-from fslib.viz import ast_to_dot, render
+from fslib.viz import ast_to_dot, fsm_to_dot, render
 
 
 def test_single_literal_is_one_node():
@@ -52,6 +54,61 @@ def test_unknown_node_type_raises():
 def test_render_writes_image_file(tmp_path):
     dot_source = ast_to_dot(parse("a(b|c)*"))
     outfile = tmp_path / "ast.png"
+    result_path = render(dot_source, str(outfile))
+    assert result_path == str(outfile)
+    assert outfile.exists()
+    assert outfile.stat().st_size > 0
+
+
+def _ends_in_a() -> FSM:
+    return FSM(
+        states={0, 1},
+        alphabet={"a", "b"},
+        transitions={0: {"a": {1}, "b": {0}}, 1: {"a": {1}, "b": {0}}},
+        start=0,
+        accepting={1},
+    )
+
+
+def test_fsm_to_dot_marks_start_and_accepting_states():
+    dot = fsm_to_dot(_ends_in_a())
+    assert dot.startswith("digraph FSM {")
+    assert dot.endswith("}")
+    assert "__start -> s0;" in dot
+    assert 's0 [shape=circle, label="0"];' in dot
+    assert 's1 [shape=doublecircle, label="1"];' in dot
+
+
+def test_fsm_to_dot_has_one_edge_per_state_pair():
+    dot = fsm_to_dot(_ends_in_a())
+    assert 's0 -> s1 [label="a"];' in dot
+    assert 's0 -> s0 [label="b"];' in dot
+    assert 's1 -> s1 [label="a"];' in dot
+    assert 's1 -> s0 [label="b"];' in dot
+
+
+def test_fsm_to_dot_merges_parallel_edges():
+    fsm = FSM(
+        states={0, 1},
+        alphabet={"a", "b", "c"},
+        transitions={0: {"a": {1}, "b": {1}, "c": {1}}},
+        start=0,
+        accepting={1},
+    )
+    dot = fsm_to_dot(fsm)
+    assert dot.count("s0 -> s1") == 1
+    assert 's0 -> s1 [label="a,b,c"];' in dot
+
+
+def test_fsm_to_dot_shows_epsilon_edges():
+    fsm = thompson(Union(Literal("a"), Literal("b")))
+    dot = fsm_to_dot(fsm)
+    assert '"ε"' in dot
+
+
+def test_fsm_to_dot_render_writes_image_file(tmp_path):
+    dot_source = fsm_to_dot(thompson(parse("a(b|c)*")))
+    outfile = tmp_path / "fsm.png"
     result_path = render(dot_source, str(outfile))
     assert result_path == str(outfile)
     assert outfile.exists()

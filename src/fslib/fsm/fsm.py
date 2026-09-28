@@ -1,27 +1,12 @@
-"""The FSM IR: a single automaton representation shared by every pass.
-
-There is no separate NFA/DFA type: "deterministic", "epsilon-free", and
-"minimal" are properties a given FSM value may or may not have, computed
-on demand — the same value type flows through construct -> determinize ->
-minimize, becoming more canonical at each step without changing shape.
-"""
-
 from dataclasses import dataclass
 
 Symbol = str
 State = int
-EPSILON = None  # sentinel used as a transition "symbol" to mean an epsilon move
+EPSILON = None
 
 
 @dataclass(frozen=True)
 class FSM:
-    """A finite-state machine: possibly nondeterministic, possibly with epsilon moves.
-
-    `transitions` maps a source state to a dict of {symbol-or-EPSILON: set of
-    target states}. A plain DFA is just an FSM whose transitions happen to
-    have no EPSILON keys and at most one target per symbol.
-    """
-
     states: frozenset[State]
     alphabet: frozenset[Symbol]
     transitions: dict[State, dict[Symbol | None, frozenset[State]]]
@@ -76,12 +61,6 @@ class FSM:
         return frozenset(closure)
 
     def accepts(self, word: str) -> bool:
-        """Whether `word` is in the language of this FSM.
-
-        Works uniformly for NFA-shaped and DFA-shaped FSMs: at each step it
-        tracks the *set* of states reachable so far (epsilon-closed), which
-        collapses to a single state for a deterministic FSM.
-        """
         current = self._epsilon_closure(frozenset({self.start}))
         for symbol in word:
             next_states: set[State] = set()

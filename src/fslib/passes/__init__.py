@@ -1,5 +1,5 @@
-"""Passes transform the FSM IR: AST -> FSM -> FSM -> FSM."""
-
 from .construct import thompson
+from .determinize import determinize
+from .minimize import minimize
 
-__all__ = ["thompson"]
+__all__ = ["thompson", "determinize", "minimize"]
