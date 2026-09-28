@@ -48,3 +48,14 @@ fslib dfa "a(b|c)*" --out dfa.png
 fslib min "a(b|c)*" --out min.png        
 fslib match "a(b|c)*" abcbc              
 ```
+
+## Запуск тестов и проверка покрытия
+
+```bash
+# все тесты
+pytest
+
+# с отчётом о покрытии
+pytest --cov=fslib --cov-report=term-missing
+```
+

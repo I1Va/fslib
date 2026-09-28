@@ -13,7 +13,6 @@ _WORDS = ["".join(p) for n in range(4) for p in itertools.product("abc", repeat=
 
 
 def _redundant_dfa() -> FSM:
-    """A DFA with two equivalent accepting states (1 and 2) that should merge."""
     return FSM(
         states={0, 1, 2},
         alphabet={"a", "b"},

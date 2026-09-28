@@ -49,7 +49,7 @@ class FSM:
             return False
         return all(len(targets) <= 1 for edges in self.transitions.values() for targets in edges.values())
 
-    def _epsilon_closure(self, states: frozenset[State]) -> frozenset[State]:
+    def epsilon_closure(self, states: frozenset[State]) -> frozenset[State]:
         closure = set(states)
         stack = list(states)
         while stack:
@@ -61,12 +61,12 @@ class FSM:
         return frozenset(closure)
 
     def accepts(self, word: str) -> bool:
-        current = self._epsilon_closure(frozenset({self.start}))
+        current = self.epsilon_closure(frozenset({self.start}))
         for symbol in word:
             next_states: set[State] = set()
             for state in current:
                 next_states.update(self.transitions.get(state, {}).get(symbol, ()))
             if not next_states:
                 return False
-            current = self._epsilon_closure(frozenset(next_states))
+            current = self.epsilon_closure(frozenset(next_states))
         return bool(current & self.accepting)

@@ -1,6 +1,8 @@
 import fire
 
 from .passes.construct import thompson
+from .passes.determinize import determinize
+from .passes.minimize import minimize
 from .regex.parser import parse as parse_regex
 from .viz import ast_to_dot, fsm_to_dot, render
 
@@ -26,6 +28,18 @@ class FslibCLI:
     def automaton(self, regex: str, out: str | None = None) -> str:
         fsm = thompson(parse_regex(regex))
         return _emit(fsm_to_dot(fsm), out)
+
+    def dfa(self, regex: str, out: str | None = None) -> str:
+        fsm = determinize(thompson(parse_regex(regex)))
+        return _emit(fsm_to_dot(fsm), out)
+
+    def min(self, regex: str, out: str | None = None) -> str:
+        fsm = minimize(determinize(thompson(parse_regex(regex))))
+        return _emit(fsm_to_dot(fsm), out)
+
+    def match(self, regex: str, word: str) -> bool:
+        fsm = minimize(determinize(thompson(parse_regex(regex))))
+        return fsm.accepts(word)
 
 
 def main() -> None:
