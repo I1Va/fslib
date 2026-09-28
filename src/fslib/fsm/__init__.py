@@ -1,1 +1,3 @@
-"""The FSM IR: a single automaton representation shared by every pass."""
+from .fsm import EPSILON, FSM, State, Symbol
+
+__all__ = ["EPSILON", "FSM", "State", "Symbol"]
