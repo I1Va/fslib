@@ -1,5 +1,3 @@
-"""Tests for fslib.cli: parse, tree, automaton, dfa, min, match commands."""
-
 import sys
 
 from fslib.cli import FslibCLI, main

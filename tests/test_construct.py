@@ -73,8 +73,9 @@ def test_wildcard_matches_any_inferred_alphabet_symbol():
 
 
 def test_result_is_nfa_shaped():
-    fsm = thompson(parse("a|b"))
-    assert not fsm.is_epsilon_free
+    # trim() collapses the epsilon edges thompson() introduces for "a|b", but genuine
+    # nondeterminism (two 'a'-transitions out of the same state) survives trimming.
+    fsm = thompson(parse("aa|ab"))
     assert not fsm.is_deterministic
 
 

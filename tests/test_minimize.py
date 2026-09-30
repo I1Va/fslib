@@ -48,7 +48,9 @@ def test_output_is_deterministic_and_complete():
 
 
 def test_rejects_nondeterministic_input():
-    nfa = thompson(parse("a|b"))
+    # "a|b" collapses to a deterministic FSM once thompson() trims it, so use a
+    # pattern whose nondeterminism (two 'a'-transitions from the same state) survives.
+    nfa = thompson(parse("aa|ab"))
     with pytest.raises(ValueError, match="deterministic"):
         minimize(nfa)
 

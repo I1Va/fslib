@@ -1,5 +1,6 @@
 import fire
 
+from .passes.complement import complement
 from .passes.construct import thompson
 from .passes.determinize import determinize
 from .passes.minimize import minimize
@@ -35,6 +36,10 @@ class FslibCLI:
 
     def min(self, regex: str, out: str | None = None) -> str:
         fsm = minimize(determinize(thompson(parse_regex(regex))))
+        return _emit(fsm_to_dot(fsm), out)
+
+    def complement(self, regex: str, out: str | None = None) -> str:
+        fsm = complement(minimize(determinize(thompson(parse_regex(regex)))))
         return _emit(fsm_to_dot(fsm), out)
 
     def match(self, regex: str, word: str) -> bool:

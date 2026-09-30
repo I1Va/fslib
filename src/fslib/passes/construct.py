@@ -4,18 +4,21 @@ from collections import defaultdict
 from fslib.fsm import EPSILON, FSM, State, Symbol
 from fslib.regex.ast import Concat, Epsilon, Literal, Plus, RegexNode, Star, Union, Wildcard
 
+from .trim import trim
+
 
 def thompson(ast: RegexNode) -> FSM:
     alphabet = _collect_alphabet(ast)
     builder = _Builder(alphabet)
     start, accept = builder.build(ast)
-    return FSM(
+    fsm = FSM(
         states=frozenset(builder.states),
         alphabet=alphabet,
         transitions=builder.transitions,
         start=start,
         accepting=frozenset({accept}),
     )
+    return trim(fsm)
 
 
 class _Builder:
@@ -33,6 +36,7 @@ class _Builder:
     def add_edge(self, src: State, symbol: Symbol | None, dst: State) -> None:
         self.transitions[src][symbol].add(dst)
 
+    # FIX: switch -> полиморфизм. Сделать build абстракный метод в абстракном классе AstNode
     def build(self, node: RegexNode) -> tuple[State, State]:
         if isinstance(node, Literal):
             return self._build_symbol(node.char)

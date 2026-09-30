@@ -101,7 +101,13 @@ def test_fsm_to_dot_merges_parallel_edges():
 
 
 def test_fsm_to_dot_shows_epsilon_edges():
-    fsm = thompson(Union(Literal("a"), Literal("b")))
+    fsm = FSM(
+        states={0, 1},
+        alphabet=set(),
+        transitions={0: {None: {1}}},
+        start=0,
+        accepting={1},
+    )
     dot = fsm_to_dot(fsm)
     assert '"ε"' in dot
 

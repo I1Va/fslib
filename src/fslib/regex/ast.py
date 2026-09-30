@@ -1,6 +1,7 @@
 from abc import ABC
 from dataclasses import dataclass
 
+# TODO: Убрать абстрактный класс. 
 class RegexNode(ABC):
     """Base class for regex AST nodes"""
 
@@ -10,7 +11,7 @@ class Epsilon(RegexNode):
     """Empty string class"""
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True) # TODO: почитать про slots
 class Literal(RegexNode):
     char: str
 

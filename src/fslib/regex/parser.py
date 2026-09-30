@@ -18,6 +18,12 @@ class _Cursor:
         self.pattern = pattern
         self.pos = 0
 
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return self.advance()
+
     @property
     def eof(self) -> bool:
         return self.pos >= len(self.pattern)
@@ -48,6 +54,8 @@ def _parse_union(cursor: _Cursor) -> RegexNode:
         node = Union(node, _parse_concat(cursor))
     return node
 
+# TODO: сделать класс с методами рекурсивного спуска вместо curesor. 
+# Сделать init от строки , имеет метод parse
 
 def _parse_concat(cursor: _Cursor) -> RegexNode:
     node: RegexNode | None = None
