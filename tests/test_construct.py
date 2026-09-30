@@ -3,8 +3,8 @@ import re
 
 import pytest
 
-from fslib.passes.construct import _Builder, thompson
-from fslib.regex.ast import Concat, Epsilon, Literal, Plus, Star, Union, Wildcard
+from fslib.passes.construct import thompson
+from fslib.regex.ast import Concat, Epsilon, Literal, Plus, RegexNode, Star, Union, Wildcard
 from fslib.regex.parser import parse
 
 
@@ -79,12 +79,12 @@ def test_result_is_nfa_shaped():
     assert not fsm.is_deterministic
 
 
-def test_unknown_node_type_raises():
-    class NotARealNode:
+def test_subclass_must_implement_build():
+    class Incomplete(RegexNode):
         pass
 
     with pytest.raises(TypeError):
-        _Builder(frozenset()).build(NotARealNode())  # type: ignore[arg-type]
+        Incomplete()  # type: ignore[abstract]
 
 
 _ORACLE_PATTERNS = [

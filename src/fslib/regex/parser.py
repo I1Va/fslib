@@ -1,7 +1,7 @@
 """
 Grammar:
-    union    := concat ('|' concat)*        
-    concat   := repeat*                     
+    union    := concat ('|' concat)*
+    concat   := repeat*
     repeat   := atom ('*' | '+')*
     atom     := LITERAL | '.' | '(' union ')'
     LITERAL  := char
@@ -13,7 +13,7 @@ from .errors import RegexSyntaxError
 _REPEAT_OPS = ("*", "+")
 
 
-class _Cursor:
+class RegexParser:
     def __init__(self, pattern: str) -> None:
         self.pattern = pattern
         self.pos = 0
@@ -21,76 +21,74 @@ class _Cursor:
     def __iter__(self):
         return self
 
-    def __next__(self):
-        return self.advance()
+    def __next__(self) -> str:
+        if self._eof:
+            raise StopIteration
+        return self._advance()
 
     @property
-    def eof(self) -> bool:
+    def _eof(self) -> bool:
         return self.pos >= len(self.pattern)
 
-    def peek(self) -> str | None:
-        return None if self.eof else self.pattern[self.pos]
+    def _peek(self) -> str | None:
+        return None if self._eof else self.pattern[self.pos]
 
-    def advance(self) -> str:
+    def _advance(self) -> str:
         char = self.pattern[self.pos]
         self.pos += 1
         return char
 
+    def parse(self) -> RegexNode:
+        node = self._parse_union()
+        if not self._eof:
+            char = self._peek()
+            message = "unmatched ')'" if char == ")" else f"unexpected {char!r}"
+            raise RegexSyntaxError(message, self.pattern, self.pos)
+        return node
+
+    def _parse_union(self) -> RegexNode:
+        node = self._parse_concat()
+        while self._peek() == "|":
+            self._advance()
+            node = Union(node, self._parse_concat())
+        return node
+
+    def _parse_concat(self) -> RegexNode:
+        node: RegexNode | None = None
+        while not self._eof and self._peek() not in ("|", ")"):
+            term = self._parse_repeat()
+            node = term if node is None else Concat(node, term)
+        return node if node is not None else Epsilon()
+
+    def _parse_repeat(self) -> RegexNode:
+        node = self._parse_atom()
+        while self._peek() in _REPEAT_OPS:
+            op = self._advance()
+            node = Star(node) if op == "*" else Plus(node)
+        return node
+
+    def _parse_atom(self) -> RegexNode:
+        char = self._peek()
+        if char in _REPEAT_OPS:
+            raise RegexSyntaxError(f"nothing to repeat before {char!r}", self.pattern, self.pos)
+        if char == "(":
+            self._advance()
+            node = self._parse_union()
+            if self._peek() != ")":
+                raise RegexSyntaxError("unbalanced '('", self.pattern, self.pos)
+            self._advance()
+            return node
+        if char == ".":
+            self._advance()
+            return Wildcard()
+        if char == "\\":
+            self._advance()
+            if self._eof:
+                raise RegexSyntaxError("dangling escape '\\' at end of pattern", self.pattern, self.pos)
+            return Literal(self._advance())
+        self._advance()
+        return Literal(char)
+
 
 def parse(pattern: str) -> RegexNode:
-    cursor = _Cursor(pattern)
-    node = _parse_union(cursor)
-    if not cursor.eof:
-        char = cursor.peek()
-        message = "unmatched ')'" if char == ")" else f"unexpected {char!r}"
-        raise RegexSyntaxError(message, pattern, cursor.pos)
-    return node
-
-
-def _parse_union(cursor: _Cursor) -> RegexNode:
-    node = _parse_concat(cursor)
-    while cursor.peek() == "|":
-        cursor.advance()
-        node = Union(node, _parse_concat(cursor))
-    return node
-
-# TODO: сделать класс с методами рекурсивного спуска вместо curesor. 
-# Сделать init от строки , имеет метод parse
-
-def _parse_concat(cursor: _Cursor) -> RegexNode:
-    node: RegexNode | None = None
-    while not cursor.eof and cursor.peek() not in ("|", ")"):
-        term = _parse_repeat(cursor)
-        node = term if node is None else Concat(node, term)
-    return node if node is not None else Epsilon()
-
-
-def _parse_repeat(cursor: _Cursor) -> RegexNode:
-    node = _parse_atom(cursor)
-    while cursor.peek() in _REPEAT_OPS:
-        op = cursor.advance()
-        node = Star(node) if op == "*" else Plus(node)
-    return node
-
-
-def _parse_atom(cursor: _Cursor) -> RegexNode:
-    char = cursor.peek()
-    if char in _REPEAT_OPS:
-        raise RegexSyntaxError(f"nothing to repeat before {char!r}", cursor.pattern, cursor.pos)
-    if char == "(":
-        cursor.advance()
-        node = _parse_union(cursor)
-        if cursor.peek() != ")":
-            raise RegexSyntaxError("unbalanced '('", cursor.pattern, cursor.pos)
-        cursor.advance()
-        return node
-    if char == ".":
-        cursor.advance()
-        return Wildcard()
-    if char == "\\":
-        cursor.advance()
-        if cursor.eof:
-            raise RegexSyntaxError("dangling escape '\\' at end of pattern", cursor.pattern, cursor.pos)
-        return Literal(cursor.advance())
-    cursor.advance()
-    return Literal(char)
+    return RegexParser(pattern).parse()

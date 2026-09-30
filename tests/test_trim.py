@@ -4,7 +4,7 @@ import re
 import pytest
 
 from fslib.fsm import FSM
-from fslib.passes.construct import _Builder, _collect_alphabet, thompson
+from fslib.passes.construct import _Builder, thompson
 from fslib.passes.trim import trim
 from fslib.regex.parser import parse
 
@@ -18,9 +18,9 @@ def _edge_count(fsm: FSM) -> int:
 def _raw_thompson(pattern: str) -> FSM:
     """Build the untrimmed Thompson NFA, bypassing thompson()'s default trim() call."""
     ast = parse(pattern)
-    alphabet = _collect_alphabet(ast)
+    alphabet = ast.literals()
     builder = _Builder(alphabet)
-    start, accept = builder.build(ast)
+    start, accept = ast.build(builder)
     return FSM(
         states=frozenset(builder.states),
         alphabet=alphabet,
