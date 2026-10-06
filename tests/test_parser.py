@@ -109,6 +109,37 @@ def test_syntax_error_message_has_caret_at_position():
     assert lines[2] == " ^"
 
 
+@pytest.mark.parametrize(
+    "spaced, tight",
+    [
+        ("a b", "ab"),
+        ("a | b", "a|b"),
+        ("  a  |  b  ", "a|b"),
+        ("( a | b ) c*", "(a|b)c*"),
+        (".*a.*a | .*b.*b", ".*a.*a|.*b.*b"),
+        ("\ta\nb ", "ab"),
+    ],
+)
+def test_whitespace_is_not_significant(spaced, tight):
+    assert parse(spaced) == parse(tight)
+
+
+def test_whitespace_only_pattern_is_epsilon():
+    assert parse("   ") == Epsilon()
+
+
+def test_escaped_space_stays_a_literal():
+    assert parse(r"a\ b") == Concat(Concat(Literal("a"), Literal(" ")), Literal("b"))
+    assert parse(r"a\ ") == Concat(Literal("a"), Literal(" "))
+
+
+def test_plus_is_kleene_plus_even_when_spaced():
+    # '+' never means union, whatever the spacing: 'a + b' is a(+)b, not a|b
+    assert parse("a + b") == Concat(Plus(Literal("a")), Literal("b"))
+    assert parse("a + b") == parse("a+b")
+    assert parse("a + b") != parse("a|b")
+
+
 def test_literal_rejects_non_single_char():
     with pytest.raises(ValueError):
         Literal("ab")

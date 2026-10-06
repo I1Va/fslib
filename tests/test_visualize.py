@@ -112,6 +112,20 @@ def test_fsm_to_dot_shows_epsilon_edges():
     assert '"ε"' in dot
 
 
+def test_fsm_to_dot_quotes_symbols_that_clash_with_the_separator():
+    fsm = FSM(
+        states={0, 1},
+        alphabet={",", " ", "a"},
+        transitions={0: {",": {1}, " ": {1}, "a": {1}}},
+        start=0,
+        accepting={1},
+    )
+    dot = fsm_to_dot(fsm)
+    assert "','" in dot
+    assert "' '" in dot
+    assert ",,a" not in dot
+
+
 def test_fsm_to_dot_render_writes_image_file(tmp_path):
     dot_source = fsm_to_dot(thompson(parse("a(b|c)*")))
     outfile = tmp_path / "fsm.png"

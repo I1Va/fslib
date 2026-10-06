@@ -26,12 +26,18 @@ class RegexParser:
             raise StopIteration
         return self._advance()
 
+    def _skip_spaces(self) -> None:
+        while self.pos < len(self.pattern) and self.pattern[self.pos].isspace():
+            self.pos += 1
+
     @property
     def _eof(self) -> bool:
+        self._skip_spaces()
         return self.pos >= len(self.pattern)
 
     def _peek(self) -> str | None:
-        return None if self._eof else self.pattern[self.pos]
+        self._skip_spaces()
+        return None if self.pos >= len(self.pattern) else self.pattern[self.pos]
 
     def _advance(self) -> str:
         char = self.pattern[self.pos]
@@ -83,7 +89,7 @@ class RegexParser:
             return Wildcard()
         if char == "\\":
             self._advance()
-            if self._eof:
+            if self.pos >= len(self.pattern):
                 raise RegexSyntaxError("dangling escape '\\' at end of pattern", self.pattern, self.pos)
             return Literal(self._advance())
         self._advance()

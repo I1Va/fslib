@@ -63,6 +63,26 @@ def test_match_true_and_false():
     assert cli.match("a(b|c)*", "abd") is False
 
 
+def test_alphabet_flag_reaches_the_automaton():
+    cli = FslibCLI()
+    assert cli.match("a*", "b") is False
+    assert cli.match(".", "b", alphabet="ab") is True
+    assert "s0 -> s0" in cli.complement("a*", alphabet="ab")
+
+
+def test_regex_round_trips_through_the_automaton():
+    cli = FslibCLI()
+    assert cli.match(cli.regex("(a|b)*abb"), "aabb") is True
+    assert cli.match(cli.regex("(a|b)*abb"), "aab") is False
+
+
+def test_complement_regex():
+    cli = FslibCLI()
+    pattern = cli.complement_regex("a*", alphabet="ab")
+    assert cli.match(pattern, "b", alphabet="ab") is True
+    assert cli.match(pattern, "aaa", alphabet="ab") is False
+
+
 def test_main_runs_via_fire(monkeypatch, capsys):
     monkeypatch.setattr(sys, "argv", ["fslib", "parse", "a"])
     main()

@@ -67,6 +67,19 @@ def test_rejects_incomplete_input():
         minimize(incomplete)
 
 
+def test_accepts_dfa_whose_unreachable_part_is_incomplete():
+    dfa = FSM(
+        states={0, 1},
+        alphabet={"a"},
+        transitions={0: {"a": {0}}},  # state 1 is unreachable and has no 'a' transition
+        start=0,
+        accepting={0},
+    )
+    minimized = minimize(dfa)
+    assert len(minimized.states) == 1
+    assert minimized.accepts("aaa")
+
+
 def test_drops_unreachable_states():
     dfa = FSM(
         states={0, 1, 2},

@@ -4,6 +4,8 @@ from typing import Protocol
 
 from fslib.fsm import EPSILON, State, Symbol
 
+_META = set("|*+.()\\")
+
 
 class Builder(Protocol):
     alphabet: frozenset[Symbol]
@@ -13,11 +15,22 @@ class Builder(Protocol):
 
 
 class RegexNode(ABC):
+    precedence = 3
+
     @abstractmethod
     def build(self, builder: Builder) -> tuple[State, State]: ...
 
+    @abstractmethod
+    def pattern(self) -> str: ...
+
     def literals(self) -> frozenset[str]:
         return frozenset()
+
+    def _operand(self, child: "RegexNode", min_precedence: int) -> str:
+        text = child.pattern()
+        if not text or child.precedence < min_precedence:
+            return f"({text})"
+        return text
 
 
 @dataclass(frozen=True)
@@ -26,6 +39,9 @@ class Epsilon(RegexNode):
         start, accept = builder.new_state(), builder.new_state()
         builder.add_edge(start, EPSILON, accept)
         return start, accept
+
+    def pattern(self) -> str:
+        return ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,6 +57,11 @@ class Literal(RegexNode):
         builder.add_edge(start, self.char, accept)
         return start, accept
 
+    def pattern(self) -> str:
+        if self.char in _META or self.char.isspace():
+            return "\\" + self.char
+        return self.char
+
     def literals(self) -> frozenset[str]:
         return frozenset({self.char})
 
@@ -53,17 +74,25 @@ class Wildcard(RegexNode):
             builder.add_edge(start, symbol, accept)
         return start, accept
 
+    def pattern(self) -> str:
+        return "."
+
 
 @dataclass(frozen=True)
 class Concat(RegexNode):
     left: RegexNode
     right: RegexNode
 
+    precedence = 1
+
     def build(self, builder: Builder) -> tuple[State, State]:
         start1, accept1 = self.left.build(builder)
         start2, accept2 = self.right.build(builder)
         builder.add_edge(accept1, EPSILON, start2)
         return start1, accept2
+
+    def pattern(self) -> str:
+        return self._operand(self.left, 1) + self._operand(self.right, 1)
 
     def literals(self) -> frozenset[str]:
         return self.left.literals() | self.right.literals()
@@ -73,6 +102,8 @@ class Concat(RegexNode):
 class Union(RegexNode):
     left: RegexNode
     right: RegexNode
+
+    precedence = 0
 
     def build(self, builder: Builder) -> tuple[State, State]:
         start1, accept1 = self.left.build(builder)
@@ -84,6 +115,9 @@ class Union(RegexNode):
         builder.add_edge(accept2, EPSILON, accept)
         return start, accept
 
+    def pattern(self) -> str:
+        return f"{self.left.pattern()}|{self.right.pattern()}"
+
     def literals(self) -> frozenset[str]:
         return self.left.literals() | self.right.literals()
 
@@ -91,6 +125,8 @@ class Union(RegexNode):
 @dataclass(frozen=True)
 class Star(RegexNode):
     child: RegexNode
+
+    precedence = 2
 
     def build(self, builder: Builder) -> tuple[State, State]:
         inner_start, inner_accept = self.child.build(builder)
@@ -101,6 +137,9 @@ class Star(RegexNode):
         builder.add_edge(inner_accept, EPSILON, accept)
         return start, accept
 
+    def pattern(self) -> str:
+        return self._operand(self.child, 3) + "*"
+
     def literals(self) -> frozenset[str]:
         return self.child.literals()
 
@@ -109,10 +148,15 @@ class Star(RegexNode):
 class Plus(RegexNode):
     child: RegexNode
 
+    precedence = 2
+
     def build(self, builder: Builder) -> tuple[State, State]:
         start, accept = self.child.build(builder)
         builder.add_edge(accept, EPSILON, start)
         return start, accept
+
+    def pattern(self) -> str:
+        return self._operand(self.child, 3) + "+"
 
     def literals(self) -> frozenset[str]:
         return self.child.literals()

@@ -79,6 +79,26 @@ def test_result_is_nfa_shaped():
     assert not fsm.is_deterministic
 
 
+def test_explicit_alphabet_widens_inferred_one():
+    fsm = thompson(parse("a*"), frozenset("ab"))
+    assert fsm.alphabet == frozenset({"a", "b"})
+    assert fsm.accepts("aa")
+    assert not fsm.accepts("b")
+
+
+def test_explicit_alphabet_gives_wildcard_its_full_range():
+    fsm = thompson(parse("."), frozenset("ab"))
+    assert fsm.accepts("a")
+    assert fsm.accepts("b")
+    assert not fsm.accepts("")
+    assert not fsm.accepts("ab")
+
+
+def test_explicit_alphabet_must_cover_regex_literals():
+    with pytest.raises(ValueError, match="missing symbols"):
+        thompson(parse("abc"), frozenset("ab"))
+
+
 def test_subclass_must_implement_build():
     class Incomplete(RegexNode):
         pass

@@ -37,7 +37,7 @@ def fsm_to_dot(fsm: FSM) -> str:
     edge_labels: dict[tuple[State, State], list[str]] = defaultdict(list)
     for src, edges in fsm.transitions.items():
         for symbol, targets in edges.items():
-            label = "ε" if symbol is EPSILON else symbol
+            label = _symbol_label(symbol)
             for dst in targets:
                 edge_labels[(src, dst)].append(label)
     for (src, dst), labels in sorted(edge_labels.items()):
@@ -78,6 +78,14 @@ def _children(node: RegexNode) -> list[RegexNode]:
     if isinstance(node, (Star, Plus)):
         return [node.child]
     return []
+
+
+def _symbol_label(symbol: str | None) -> str:
+    if symbol is EPSILON:
+        return "ε"
+    if symbol == "," or not symbol.isprintable() or symbol.isspace():
+        return f"'{symbol}'"
+    return symbol
 
 
 def _escape(char: str) -> str:

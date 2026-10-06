@@ -1,22 +1,22 @@
 from fslib.fsm import FSM
 
+from .determinize import determinize
 
-def complement(dfa: FSM) -> FSM:
-    if not dfa.is_deterministic:
-        raise ValueError("complement requires a deterministic FSM; call determinize() first")
-    if not _is_complete(dfa):
-        raise ValueError("complement requires a complete FSM; call determinize() first")
+
+def complement(fsm: FSM) -> FSM:
+    if not fsm.is_deterministic or not _is_complete(fsm):
+        fsm = determinize(fsm)
 
     return FSM(
-        states=dfa.states,
-        alphabet=dfa.alphabet,
-        transitions=dfa.transitions,
-        start=dfa.start,
-        accepting=frozenset(dfa.states - dfa.accepting),
+        states=fsm.states,
+        alphabet=fsm.alphabet,
+        transitions=fsm.transitions,
+        start=fsm.start,
+        accepting=frozenset(fsm.states - fsm.accepting),
     )
 
 
-def _is_complete(dfa: FSM) -> bool:
+def _is_complete(fsm: FSM) -> bool:
     return all(
-        len(dfa.transitions.get(state, {}).get(symbol, ())) == 1 for state in dfa.states for symbol in dfa.alphabet
+        len(fsm.transitions.get(state, {}).get(symbol, ())) == 1 for state in fsm.states for symbol in fsm.alphabet
     )

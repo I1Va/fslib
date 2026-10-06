@@ -6,10 +6,11 @@ from fslib.fsm import FSM, State, Symbol
 def minimize(dfa: FSM) -> FSM:
     if not dfa.is_deterministic:
         raise ValueError("minimize requires a deterministic FSM; call determinize() first")
-    if not _is_complete(dfa):
-        raise ValueError("minimize requires a complete FSM (missing transitions); call determinize() first")
 
     reachable = _reachable_states(dfa)
+    if not _is_complete(dfa, reachable):
+        raise ValueError("minimize requires a complete FSM (missing transitions); call determinize() first")
+
     accepting = dfa.accepting & reachable
     non_accepting = reachable - accepting
 
@@ -78,7 +79,7 @@ def _reachable_states(dfa: FSM) -> frozenset[State]:
     return frozenset(seen)
 
 
-def _is_complete(dfa: FSM) -> bool:
+def _is_complete(dfa: FSM, states: frozenset[State]) -> bool:
     return all(
-        len(dfa.transitions.get(state, {}).get(symbol, ())) == 1 for state in dfa.states for symbol in dfa.alphabet
+        len(dfa.transitions.get(state, {}).get(symbol, ())) == 1 for state in states for symbol in dfa.alphabet
     )

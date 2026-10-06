@@ -29,13 +29,23 @@ def test_double_complement_restores_language():
         assert twice.accepts(word) == dfa.accepts(word)
 
 
-def test_rejects_nondeterministic_input():
+def test_complement_over_explicit_alphabet():
+    dfa = minimize(determinize(thompson(parse("a*"), frozenset("ab"))))
+    co = complement(dfa)
+    assert co.accepts("b")
+    assert co.accepts("ab")
+    assert not co.accepts("")
+    assert not co.accepts("aaa")
+
+
+def test_accepts_nondeterministic_input():
     nfa = thompson(parse("aa|ab"))
-    with pytest.raises(ValueError, match="deterministic"):
-        complement(nfa)
+    co = complement(nfa)
+    for word in _words_over(nfa.alphabet):
+        assert co.accepts(word) == (not nfa.accepts(word))
 
 
-def test_rejects_incomplete_input():
+def test_accepts_incomplete_input():
     incomplete = FSM(
         states={0, 1},
         alphabet={"a", "b"},
@@ -43,5 +53,8 @@ def test_rejects_incomplete_input():
         start=0,
         accepting={1},
     )
-    with pytest.raises(ValueError, match="complete"):
-        complement(incomplete)
+    co = complement(incomplete)
+    assert co.accepts("")
+    assert co.accepts("b")
+    assert co.accepts("aa")
+    assert not co.accepts("a")
